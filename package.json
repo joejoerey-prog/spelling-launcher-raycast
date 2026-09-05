@@ -1,0 +1,66 @@
+{
+  "$schema": "https://www.raycast.com/schemas/extension.json",
+  "name": "spelling-launcher",
+  "title": "Spelling Launcher",
+  "description": "Rewrite and check selected text in any app using your local Ollama instance with zero cloud telemetry.",
+  "icon": "icon.png",
+  "author": "antigravity",
+  "categories": [
+    "Productivity",
+    "Writing"
+  ],
+  "license": "MIT",
+  "commands": [
+    {
+      "name": "rewrite-selection",
+      "title": "Rewrite Selected Text",
+      "subtitle": "Spelling Launcher",
+      "description": "Opens side-by-side tone rewrites and diffs for currently highlighted text and pastes back into your active app.",
+      "mode": "view"
+    },
+    {
+      "name": "quick-fix",
+      "title": "Proofread & Fix (Keep Words)",
+      "subtitle": "Spelling Launcher",
+      "description": "Proofreads selected text, fixing spelling and grammar without changing your words, and pastes directly back.",
+      "mode": "no-view"
+    }
+  ],
+  "preferences": [
+    {
+      "name": "ollamaHost",
+      "type": "textfield",
+      "required": false,
+      "title": "Ollama Host URL",
+      "description": "Local Ollama server URL (defaults to http://localhost:11434)",
+      "default": "http://localhost:11434",
+      "placeholder": "http://localhost:11434"
+    },
+    {
+      "name": "ollamaModel",
+      "type": "textfield",
+      "required": false,
+      "title": "Ollama Model",
+      "description": "Local model name to use for rewriting",
+      "default": "qwen2.5vl:latest",
+      "placeholder": "qwen2.5vl:latest"
+    }
+  ],
+  "dependencies": {
+    "@raycast/api": "^1.83.0",
+    "@raycast/utils": "^1.17.0",
+    "react": "^18.3.1"
+  },
+  "devDependencies": {
+    "@raycast/eslint-config": "^1.0.8",
+    "@types/node": "20.8.10",
+    "@types/react": "^18.3.12",
+    "eslint": "^8.57.0",
+    "prettier": "^3.3.3",
+    "typescript": "^5.4.5"
+  },
+  "scripts": {
+    "build": "ray build -e dist -o dist && cp dist/*.js .",
+    "dev": "ray develop"
+  }
+}
