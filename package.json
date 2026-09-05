@@ -42,8 +42,8 @@
       "required": false,
       "title": "Ollama Model",
       "description": "Local model name to use for rewriting",
-      "default": "qwen2.5vl:latest",
-      "placeholder": "qwen2.5vl:latest"
+      "default": "llama3.2:3b",
+      "placeholder": "llama3.2:3b"
     }
   ],
   "dependencies": {

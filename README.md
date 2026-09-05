@@ -8,7 +8,7 @@ Rewrite, polish, and check selected text in **any application on macOS** (Chrome
 
 ### 1. 🚀 `Rewrite Selected Text` (Interactive Modal)
 - Grabs highlighted text from your active window.
-- Generates side-by-side rewrites using your local Ollama model (`qwen2.5vl:latest` / `qwen3:8b`).
+- Generates side-by-side rewrites using your local Ollama model (`llama3.2:3b`).
 - Allows switching tones on the fly (**Professional**, **Casual**, **Academic**, **Confident**, **Shorten**, **Expand**).
 - Shows before/after word diffs in the detail pane.
 - **Press `Enter`** to paste the rewritten text directly into your active text box.

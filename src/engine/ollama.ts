@@ -19,7 +19,7 @@ export async function proofreadStrictText(originalText: string): Promise<string>
 
   const prefs = getPreferenceValues<Preferences>();
   const host = (prefs.ollamaHost || 'http://localhost:11434').replace(/\/v1\/?$/, '');
-  const model = prefs.ollamaModel || 'qwen2.5vl:latest';
+  const model = prefs.ollamaModel || 'llama3.2:3b';
 
   const systemPrompt = `You are a strict, literal proofreading engine.
 Your sole duty is to fix spelling errors, typos, capitalization, punctuation, and grammatical correctness.
@@ -84,7 +84,7 @@ ABSOLUTE RULES:
 export async function fetchFourVersionRewrites(originalText: string): Promise<RewriteChoice[]> {
   const prefs = getPreferenceValues<Preferences>();
   const host = (prefs.ollamaHost || 'http://localhost:11434').replace(/\/v1\/?$/, '');
-  const model = prefs.ollamaModel || 'qwen2.5vl:latest';
+  const model = prefs.ollamaModel || 'llama3.2:3b';
 
   const prompt = `Rewrite the following sentence into 4 distinct versions:
 1. Formal: Polished, professional, articulate, and grammatically impeccable.
