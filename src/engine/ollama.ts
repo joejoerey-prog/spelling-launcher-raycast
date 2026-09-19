@@ -1,97 +1,78 @@
-import { getPreferenceValues, Icon, Color } from '@raycast/api';
+import { getPreferenceValues, showToast, Toast, Icon, Color, openExtensionPreferences } from '@raycast/api';
 import { Tone, RewriteChoice } from '../types';
 import { generateDiffMarkdown } from './diff';
-import { applyFastFixes } from './deterministic';
 
 interface Preferences {
   ollamaHost?: string;
   ollamaModel?: string;
+  language?: string;
+}
+
+export interface DialectCheckFinding {
+  originalWord: string;
+  usVariant: string;
+  tone: string;
 }
 
 /**
- * Strict literal proofreader:
- * Fixes spelling, typos, punctuation, and grammatical mistakes.
- * Strictly NEVER substitutes words, rewrites phrasing, or deletes words.
+ * Narrow diagnostic check to verify whether known UK spellings in originalText
+ * were inadvertently Americanised by the LLM.
  */
-export async function proofreadStrictText(originalText: string): Promise<string> {
-  const text = originalText.trim();
-  if (!text) return '';
+export function checkUkDialectPreservation(
+  originalText: string,
+  rewrittenVersions: Record<string, string>
+): DialectCheckFinding[] {
+  const testPairs: [RegExp, RegExp, string, string][] = [
+    [/\bfavourable\b/i, /\bfavorable\b/i, 'favourable', 'favorable'],
+    [/\borganise\b/i, /\borganize\b/i, 'organise', 'organize'],
+    [/\bcolour\b/i, /\bcolor\b/i, 'colour', 'color'],
+    [/\bcentre\b/i, /\bcenter\b/i, 'centre', 'center'],
+    [/\btravelling\b/i, /\btraveling\b/i, 'travelling', 'traveling'],
+    [/\bdefence\b/i, /\bdefense\b/i, 'defence', 'defense'],
+    [/\banalyse\b/i, /\banalyze\b/i, 'analyse', 'analyze'],
+  ];
 
-  const prefs = getPreferenceValues<Preferences>();
-  const host = (prefs.ollamaHost || 'http://localhost:11434').replace(/\/v1\/?$/, '');
-  const model = prefs.ollamaModel || 'llama3.2:3b';
+  const findings: DialectCheckFinding[] = [];
 
-  const systemPrompt = `You are a strict, literal proofreading engine.
-Your sole duty is to fix spelling errors, typos, capitalization, punctuation, and grammatical correctness.
-ABSOLUTE RULES:
-1. NEVER substitute words with synonyms.
-2. NEVER rewrite, rephrase, or reorder sentences.
-3. NEVER delete words or add commentary words.
-4. Keep the author's exact vocabulary, style, and tone 100% intact.
-5. Output ONLY the corrected text directly with no quotes, no conversational filler, and no markdown fences.`;
-
-  try {
-    const res = await fetch(`${host}/v1/chat/completions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          {
-            role: 'user',
-            content: `Correct only spelling, grammar, punctuation, and typos in the following text without altering any other words:\n\n${text}`,
-          },
-        ],
-        temperature: 0.0,
-        max_tokens: 600,
-      }),
-    });
-
-    if (!res.ok) {
-      throw new Error(`Ollama returned status ${res.status}`);
+  for (const [ukRegex, usRegex, ukWord, usWord] of testPairs) {
+    if (ukRegex.test(originalText)) {
+      for (const [tone, text] of Object.entries(rewrittenVersions)) {
+        if (usRegex.test(text) && !ukRegex.test(text)) {
+          findings.push({
+            originalWord: ukWord,
+            usVariant: usWord,
+            tone,
+          });
+        }
+      }
     }
-
-    const data: any = await res.json();
-    let raw = (data.choices?.[0]?.message?.content || '').trim();
-
-    // Strip thinking tags or markdown fences
-    if (raw.includes('</think>')) {
-      raw = raw.split('</think>')[1].trim();
-    }
-    if (raw.startsWith('```')) {
-      const lines = raw.split('\n');
-      raw = lines.slice(1, -1).join('\n').trim();
-    }
-
-    // Strip surrounding quotes if model wrapped output in quotes
-    if ((raw.startsWith('"') && raw.endsWith('"')) || (raw.startsWith('\'') && raw.endsWith('\''))) {
-      raw = raw.slice(1, -1).trim();
-    }
-
-    if (raw.length > 0) {
-      return raw;
-    }
-    return applyFastFixes(text);
-  } catch {
-    return applyFastFixes(text);
   }
+
+  return findings;
 }
 
 /**
- * Multi-version rewrite engine (Formal, Friendly, Direct, Detailed).
+ * Constructs system and user prompts incorporating language requirements.
  */
-export async function fetchFourVersionRewrites(originalText: string): Promise<RewriteChoice[]> {
-  const prefs = getPreferenceValues<Preferences>();
-  const host = (prefs.ollamaHost || 'http://localhost:11434').replace(/\/v1\/?$/, '');
-  const model = prefs.ollamaModel || 'llama3.2:3b';
+export function buildRewritePrompt(
+  originalText: string,
+  language: string = 'en_GB'
+): { systemPrompt: string; userPrompt: string } {
+  const isUK = language === 'en_GB';
+  const systemPrompt = isUK
+    ? 'You are an expert sentence rewriting engine. You strictly write in British English (en_GB), preserving UK spelling (e.g. favourable, organise, colour, centre, travelling, defence, analyse) and UK punctuation standards (omit full stops on titles like Mr, Mrs, Dr; omit Oxford commas in simple lists like "bread, milk and eggs"; use single quotes \'...\' with punctuation outside unless part of quoted speech; capitalize sentence starts and end complete statements with full stops). You output only raw valid JSON without markdown code fences.'
+    : 'You are an expert sentence rewriting engine. You output only raw valid JSON without markdown code fences.';
 
-  const prompt = `Rewrite the following sentence into 4 distinct versions:
+  const languageInstruction = isUK
+    ? '\nLanguage & Punctuation requirements (UK English):\n- Strictly preserve British English (en_GB) spelling (such as favourable, organise, colour, centre).\n- Capitalise the first letter of each sentence and terminate complete statements with a full stop (or question mark for direct questions).\n- Omit full stops on modern British titles (Mr, Mrs, Dr) and acronyms (BBC, NHS).\n- Lists: Omit the Oxford comma by default ("bread, milk and eggs") unless required for clarity.\n- Quotation marks: Use single quotation marks (\'...\') with full stops and commas outside unless part of quoted dialogue.\n- Hyphenate compound adjectives before nouns ("world-class performance").\n'
+    : '';
+
+  const userPrompt = `Rewrite the following sentence into 4 distinct versions:
 1. Formal: Polished, professional, articulate, and grammatically impeccable.
 2. Friendly: Warm, conversational, and approachable.
 3. Direct: Concise, punchy, cutting all fluff.
 4. Detailed: Thorough, descriptive, and richly explanatory.
-
+${languageInstruction}
 Sentence: "${originalText.trim()}"
 
 Output ONLY a JSON object with keys: "formal", "friendly", "direct", "detailed".
@@ -104,6 +85,48 @@ Example:
   "detailed": "To ensure we made a well-grounded decision, our team conducted a comprehensive investigation."
 }`;
 
+  return { systemPrompt, userPrompt };
+}
+
+export function isVisionModel(model: string): boolean {
+  const lower = model.toLowerCase();
+  return lower.includes('qwen2.5vl') || lower.includes('vision') || lower.includes('-vl') || lower.includes(':vl') || lower.includes('vl:');
+}
+
+/**
+ * Multi-version rewrite engine (Formal, Friendly, Direct, Detailed).
+ */
+export async function fetchFourVersionRewrites(originalText: string): Promise<RewriteChoice[]> {
+  let prefs: Preferences = {};
+  try {
+    prefs = getPreferenceValues<Preferences>();
+  } catch {
+    // Standard fallback if executed in test runner
+  }
+  const host = (prefs.ollamaHost || 'http://localhost:11434').replace(/\/v1\/?$/, '');
+  const model = prefs.ollamaModel || 'llama3.2:3b';
+  const language = prefs.language || 'en_GB';
+
+  if (model !== 'llama3.2:3b') {
+    await showToast({
+      style: Toast.Style.Failure,
+      title: 'Outdated Ollama model configured',
+      message: `The configured model '${model}' is a vision-language model that loads ~12.6 GB. Change it to 'llama3.2:3b' to reclaim memory. Recommended: llama3.2:3b`,
+      primaryAction: {
+        title: 'Open Preferences',
+        shortcut: { modifiers: ['cmd'], key: ',' },
+        onAction: () => {
+          openExtensionPreferences();
+        },
+      },
+    });
+    throw new Error(
+      `The configured model '${model}' is a vision-language model that loads ~12.6 GB. Change it to 'llama3.2:3b' to reclaim memory. Recommended: llama3.2:3b`
+    );
+  }
+
+  const { systemPrompt, userPrompt } = buildRewritePrompt(originalText, language);
+
   try {
     const res = await fetch(`${host}/v1/chat/completions`, {
       method: 'POST',
@@ -111,8 +134,8 @@ Example:
       body: JSON.stringify({
         model,
         messages: [
-          { role: 'system', content: 'You are an expert sentence rewriting engine. You output only raw valid JSON without markdown code fences.' },
-          { role: 'user', content: prompt },
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
         ],
         temperature: 0.7,
         max_tokens: 500,
@@ -191,7 +214,18 @@ Example:
     const choices: RewriteChoice[] = [];
 
     for (const v of versionDefs) {
-      const val = parsed[v.tone];
+      let val = parsed[v.tone];
+      if (val === undefined) {
+        if (v.tone === 'detailed') {
+          val = parsed['detailled'] || parsed['details'] || parsed['elaborate'];
+        } else if (v.tone === 'formal') {
+          val = parsed['professional'] || parsed['polished'];
+        } else if (v.tone === 'friendly') {
+          val = parsed['casual'] || parsed['warm'];
+        } else if (v.tone === 'direct') {
+          val = parsed['concise'] || parsed['punchy'];
+        }
+      }
       let rewrittenText = '';
       if (typeof val === 'string') {
         rewrittenText = val.trim();
@@ -200,7 +234,7 @@ Example:
       }
 
       if (!rewrittenText) {
-        rewrittenText = applyFastFixes(originalText);
+        rewrittenText = originalText.trim();
       }
 
       const diff = generateDiffMarkdown(originalText.trim(), rewrittenText, v.label);
@@ -218,55 +252,23 @@ Example:
       });
     }
 
+    if (language === 'en_GB') {
+      const versionsMap: Record<string, string> = {};
+      for (const c of choices) {
+        versionsMap[c.tone] = c.rewrittenText;
+      }
+      const findings = checkUkDialectPreservation(originalText, versionsMap);
+      if (findings.length > 0) {
+        console.warn(
+          `[SpellingLauncher] Dialect warning: Model converted UK English spellings to US variants: ` +
+            findings.map((f) => `${f.originalWord} -> ${f.usVariant} in ${f.tone}`).join(', ')
+        );
+      }
+    }
+
     return choices;
   } catch (err: any) {
-    const cleaned = applyFastFixes(originalText);
-    return [
-      {
-        id: 'version-1',
-        versionNumber: 1,
-        tone: 'formal',
-        label: 'Version 1: Formal',
-        rewrittenText: cleaned,
-        originalText: originalText.trim(),
-        diffMarkdown: generateDiffMarkdown(originalText.trim(), cleaned, 'Version 1: Formal (Cleaned)'),
-        icon: Icon.Document,
-        tintColor: Color.Blue,
-      },
-      {
-        id: 'version-2',
-        versionNumber: 2,
-        tone: 'friendly',
-        label: 'Version 2: Friendly',
-        rewrittenText: cleaned,
-        originalText: originalText.trim(),
-        diffMarkdown: generateDiffMarkdown(originalText.trim(), cleaned, 'Version 2: Friendly (Cleaned)'),
-        icon: Icon.Heart,
-        tintColor: Color.Green,
-      },
-      {
-        id: 'version-3',
-        versionNumber: 3,
-        tone: 'direct',
-        label: 'Version 3: Direct',
-        rewrittenText: cleaned,
-        originalText: originalText.trim(),
-        diffMarkdown: generateDiffMarkdown(originalText.trim(), cleaned, 'Version 3: Direct (Cleaned)'),
-        icon: Icon.Bolt,
-        tintColor: Color.Orange,
-      },
-      {
-        id: 'version-4',
-        versionNumber: 4,
-        tone: 'detailed',
-        label: 'Version 4: Detailed',
-        rewrittenText: cleaned,
-        originalText: originalText.trim(),
-        diffMarkdown: generateDiffMarkdown(originalText.trim(), cleaned, 'Version 4: Detailed (Cleaned)'),
-        icon: Icon.Book,
-        tintColor: Color.Purple,
-      },
-    ];
+    throw new Error(`Ollama rewrite failed: ${err.message || err}. Please ensure Ollama is running at ${host}.`);
   }
 }
 

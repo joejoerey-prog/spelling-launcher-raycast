@@ -1,5 +1,18 @@
 import { getSelectedText, Clipboard, showHUD } from '@raycast/api';
-import { proofreadStrictText } from './engine/ollama';
+import { proofreadAndReportChanges, ProofreadChange } from './engine/nativeSpellchecker';
+
+function formatChangeSummary(changes: ProofreadChange[]): string {
+  if (changes.length === 0) {
+    return '✨ 100% Correct! (No spelling or grammar errors)';
+  }
+
+  const items = changes.map((c) => `"${c.matched}" → "${c.replacement}"`);
+  if (items.length <= 2) {
+    return `✨ Fixed: ${items.join(', ')}`;
+  } else {
+    return `✨ Fixed ${changes.length} errors: ${items.slice(0, 2).join(', ')} (+${changes.length - 2} more)`;
+  }
+}
 
 export default async function Command() {
   try {
@@ -19,18 +32,14 @@ export default async function Command() {
       return;
     }
 
-    await showHUD('🔍 Proofreading (keeping your words)...');
-    const corrected = await proofreadStrictText(text);
+    const { correctedText, changes } = await proofreadAndReportChanges(text, { mode: 'document' });
 
-    if (corrected) {
-      await Clipboard.paste(corrected);
-      if (corrected === text) {
-        await showHUD('✨ 100% Correct! (No spelling or grammar errors)');
-      } else {
-        await showHUD('✨ Fixed spelling & grammar (words kept intact)!');
-      }
+    if (correctedText) {
+      await Clipboard.paste(correctedText);
+      const hudMessage = formatChangeSummary(changes);
+      await showHUD(hudMessage);
     } else {
-      await showHUD('⚠️ Could not proofread text.');
+      await showHUD('⚠️ Could not proofread text: empty response.');
     }
   } catch (err: any) {
     await showHUD(`❌ Error: ${err.message || err}`);

@@ -1,3 +1,14 @@
+# Dependencies
 node_modules/
+
+# Build outputs
 dist/
+
+# Environment and logs
+.env
+*.log
 .DS_Store
+
+# Synced CLI binary and generated version manifest
+assets/spellcheck-cli
+assets/*.version.json

@@ -2,7 +2,7 @@
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "spelling-launcher",
   "title": "Spelling Launcher",
-  "description": "Rewrite and check selected text in any app using your local Ollama instance with zero cloud telemetry.",
+  "description": "Native macOS spelling, grammar, and tone assistant for any app using Apple Silicon proofreading services and local Ollama with zero cloud telemetry.",
   "icon": "icon.png",
   "author": "antigravity",
   "categories": [
@@ -16,23 +16,55 @@
       "title": "Rewrite Selected Text",
       "subtitle": "Spelling Launcher",
       "description": "Opens side-by-side tone rewrites and diffs for currently highlighted text and pastes back into your active app.",
-      "mode": "view"
+      "mode": "view",
+      "keywords": [
+        "rewrite",
+        "tone",
+        "ollama"
+      ]
     },
     {
       "name": "quick-fix",
-      "title": "Proofread & Fix (Keep Words)",
+      "title": "Quick Polish & Paste",
       "subtitle": "Spelling Launcher",
-      "description": "Proofreads selected text, fixing spelling and grammar without changing your words, and pastes directly back.",
-      "mode": "no-view"
+      "description": "Analyses selected text for spelling and grammar errors, then pastes back corrected text with a brief notification explaining what changed.",
+      "mode": "no-view",
+      "keywords": [
+        "polish",
+        "quick polish",
+        "paste",
+        "quick polish and paste",
+        "cleanup",
+        "proofread",
+        "fix"
+      ]
     }
   ],
   "preferences": [
     {
+      "name": "language",
+      "type": "dropdown",
+      "required": false,
+      "title": "Proofreading Language",
+      "description": "Native macOS NSSpellChecker proofreading language",
+      "default": "en_GB",
+      "data": [
+        {
+          "title": "British English (en_GB)",
+          "value": "en_GB"
+        },
+        {
+          "title": "American English (en_US)",
+          "value": "en_US"
+        }
+      ]
+    },
+    {
       "name": "ollamaHost",
       "type": "textfield",
       "required": false,
-      "title": "Ollama Host URL",
-      "description": "Local Ollama server URL (defaults to http://localhost:11434)",
+      "title": "Ollama Host URL (Optional Rewriter)",
+      "description": "Local Ollama server URL (defaults to http://localhost:11434, used only for multi-version tone rewrites)",
       "default": "http://localhost:11434",
       "placeholder": "http://localhost:11434"
     },
@@ -40,7 +72,7 @@
       "name": "ollamaModel",
       "type": "textfield",
       "required": false,
-      "title": "Ollama Model",
+      "title": "Ollama Model (Optional Rewriter)",
       "description": "Local model name to use for rewriting",
       "default": "llama3.2:3b",
       "placeholder": "llama3.2:3b"
@@ -61,6 +93,8 @@
   },
   "scripts": {
     "build": "ray build -e dist -o dist && cp dist/*.js .",
-    "dev": "ray develop"
+    "sync": "mkdir -p ~/.config/raycast/extensions/spelling-launcher/assets && cp -r assets/* ~/.config/raycast/extensions/spelling-launcher/assets/ && cp package.json quick-fix.js* rewrite-selection.js* ~/.config/raycast/extensions/spelling-launcher/",
+    "dev": "ray develop",
+    "test": "esbuild tests/extension-defects.test.ts --bundle --platform=node --outfile=tests/runner.cjs --alias:@raycast/api=./tests/mocks/raycast-api.js && node tests/runner.cjs"
   }
 }

@@ -8,9 +8,11 @@
 /* eslint-disable @typescript-eslint/ban-types */
 
 type ExtensionPreferences = {
-  /** Ollama Host URL - Local Ollama server URL (defaults to http://localhost:11434) */
+  /** Proofreading Language - Native macOS NSSpellChecker proofreading language */
+  "language": "en_GB" | "en_US",
+  /** Ollama Host URL (Optional Rewriter) - Local Ollama server URL (defaults to http://localhost:11434, used only for multi-version tone rewrites) */
   "ollamaHost": string,
-  /** Ollama Model - Local model name to use for rewriting */
+  /** Ollama Model (Optional Rewriter) - Local model name to use for rewriting */
   "ollamaModel": string
 }
 
