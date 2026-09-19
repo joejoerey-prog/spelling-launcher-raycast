@@ -1,6 +1,6 @@
 # 🚀 Spelling Launcher for Raycast
 
-[![CI](https://github.com/joerey/spelling-launcher-raycast/actions/workflows/ci.yml/badge.svg)](https://github.com/joerey/spelling-launcher-raycast/actions/workflows/ci.yml)
+[![CI](https://github.com/joejoerey-prog/spelling-launcher-raycast/actions/workflows/ci.yml/badge.svg)](https://github.com/joejoerey-prog/spelling-launcher-raycast/actions/workflows/ci.yml)
 [![Licence: MIT](https://img.shields.io/badge/Licence-MIT-blue.svg)](LICENSE)
 [![Platform: macOS Apple Silicon](https://img.shields.io/badge/Platform-macOS%20(Apple%20Silicon)-black.svg)](https://apple.com)
 
@@ -75,7 +75,7 @@ Spelling Launcher employs a unified multi-surface architecture (**Strategy H**):
 ### Option 1: Import as Local Extension (Recommended)
 1. Clone the repository to your local machine:
    ```bash
-   git clone https://github.com/joerey/spelling-launcher-raycast.git
+   git clone https://github.com/joejoerey-prog/spelling-launcher-raycast.git
    cd spelling-launcher-raycast
    npm install
    npm run build

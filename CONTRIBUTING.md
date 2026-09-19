@@ -30,7 +30,7 @@ Please review the following guidelines before submitting issues or pull requests
 
 ### Getting Started
 ```bash
-git clone https://github.com/<owner>/spelling-launcher-raycast.git
+git clone https://github.com/joejoerey-prog/spelling-launcher-raycast.git
 cd spelling-launcher-raycast
 npm install
 ```
