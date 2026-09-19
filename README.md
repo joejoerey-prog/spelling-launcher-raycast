@@ -89,9 +89,13 @@ Spelling Launcher employs a unified multi-surface architecture (**Strategy H**):
 ### Option 2: Build from Source
 ```bash
 npm install
+./scripts/sync-raycast-cli.sh  # Synchronises native spellcheck-cli from desktop repository
 npm run build
-npm run dev # Launches local Raycast extension development watcher
+npm run dev                    # Launches local Raycast extension development watcher
 ```
+
+> [!NOTE]
+> The native proofreading CLI binary (`assets/spellcheck-cli`) is compiled from the [Spelling Launcher desktop repository](https://github.com/joejoerey-prog/spelling-launcher) and excluded from Git. Run `./scripts/sync-raycast-cli.sh` to stage the binary for development and testing.
 
 ---
 

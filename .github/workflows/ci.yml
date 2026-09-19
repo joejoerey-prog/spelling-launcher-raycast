@@ -11,36 +11,63 @@ jobs:
     name: Node Tests
     runs-on: macos-14
     steps:
-      - name: Checkout repository
+      - name: Checkout Raycast repository
         uses: actions/checkout@v4
+        with:
+          path: raycast
 
-      - name: Install Node
+      - name: Checkout Desktop repository
+        uses: actions/checkout@v4
+        with:
+          repository: joejoerey-prog/spelling-launcher
+          ref: v1.0.0-beta
+          path: desktop
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
+          cache-dependency-path: raycast/package-lock.json
 
-      - name: Install Dependencies
-        run: npm install
+      - name: Synchronise native CLI
+        working-directory: raycast
+        env:
+          SPELLING_LAUNCHER_DESKTOP_DIR: ${{ github.workspace }}/desktop
+        run: ./scripts/sync-raycast-cli.sh
 
-      - name: Run Tests
+      - name: Install dependencies
+        working-directory: raycast
+        run: npm ci
+
+      - name: Run tests
+        working-directory: raycast
         run: npm test
 
   build-check:
     name: Build Check
     runs-on: macos-14
+    # The build check compiles TypeScript source files and validates extension bundling with 'ray build'.
+    # Because Raycast extension bundling does not invoke or package the native binary during 'ray build'
+    # (the CLI binary is executed at runtime via child_process.spawn), no Rust toolchain or desktop
+    # repository checkout is required for this job.
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Node
+      - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
 
-      - name: Install Dependencies
-        run: npm install
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Build Extension
+      - name: Build extension
         run: npm run build

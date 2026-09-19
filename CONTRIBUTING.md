@@ -70,12 +70,26 @@ This validates TypeScript types and packages the production distribution bundle 
 
 ## 5. Synchronising the Native Engine Binary
 
-The native CLI binary is built from the core repository (`crates/spellcheck-cli`). To sync an updated release binary from the desktop repository into this extension:
-```bash
-# From the parent directory or desktop repo:
-./scripts/sync-raycast-cli.sh
-```
-Verify that `assets/spellcheck-cli` and `assets/spellcheck-cli.version.json` match the latest `spellcore` commit.
+The native proofreading CLI binary (`assets/spellcheck-cli`) and its version manifest (`assets/spellcheck-cli.version.json`) are compiled native artefacts and are ignored by Git. They are built from the desktop repository (`crates/spellcheck-cli`) and staged into `assets/`.
+
+- **Compatible Desktop Revision**: Tag [`v1.0.0-beta`](https://github.com/joejoerey-prog/spelling-launcher/tree/v1.0.0-beta) (commit `5ea13cd`).
+- **Synchronisation Command**:
+  ```bash
+  # Automatically resolves ../spelling-launcher or ../wordtune-personal:
+  ./scripts/sync-raycast-cli.sh
+
+  # Or specify the desktop repository path explicitly:
+  SPELLING_LAUNCHER_DESKTOP_DIR=/path/to/spelling-launcher ./scripts/sync-raycast-cli.sh
+  ```
+- **Verification**:
+  After synchronisation, verify the binary and run tests:
+  ```bash
+  # Check binary drift against the desktop repository:
+  ./scripts/check-drift.sh
+
+  # Run the full test suite:
+  npm test
+  ```
 
 ---
 
